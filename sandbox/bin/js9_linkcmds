@@ -1,0 +1,30 @@
+#! /usr/bin/env python3.6
+source ~/.jsenv.sh
+
+function linkcmds {
+    if [ -z "$CODEDIR" ]; then
+        echo "Please define CODEDIR"
+        exit 1
+    fi
+    #link all our command lines relevant to jumpscale development env
+    rm -f /usr/local/bin/js9*
+    rm -rf /usr/local/bin/cmds*
+    if [ -e /root/.iscontainer ]; then
+        #we are in container
+        echo "* link commands to container"
+        set -x
+        find  $CODEDIR/github/jumpscale/core9/cmds -exec ln -s {} "/usr/local/bin/" \;
+        rm -rf /usr/local/bin/cmds
+        find  $CODEDIR/github/jumpscale/developer/cmds_guest -exec ln -s {} "/usr/local/bin/" \;
+        rm -rf /usr/local/bin/cmds_guest
+    else
+        echo "* link commands to local environment"
+        find  $CODEDIR/github/jumpscale/developer/cmds_host -exec ln -s {} "/usr/local/bin/" \;
+        rm -rf /usr/local/bin/cmds_host
+    fi
+
+}
+
+
+linkcmds > /tmp/lastcommandoutput.txt 2>&1
+

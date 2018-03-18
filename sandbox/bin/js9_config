@@ -1,0 +1,93 @@
+#! /usr/bin/env python3.6
+from js9 import j
+j.tools.bash.local.locale_check()
+import click
+
+
+@click.group()
+def cli():
+    pass
+
+
+@click.command()
+def sandbox():
+    """
+    js9_config sandbox
+    """
+    j.tools.configmanager.sandbox_init(path="", systemssh=False, passphrase="", reset=False, sshkeyname="")
+
+@click.command()
+@click.option('--silent', '-s',  type=bool, is_flag=True, default=False, help='if silent will try to figure out configuration automatically, make sure 1 sshkey loaded in ssh-agent.')
+@click.option('--path', '-p',  help='path of the configuration repository you want to use')
+@click.option('--key', '-k', help='path to the ssh key you want to use')
+def init(silent, path, key):
+    """
+    js9_config init -s
+    """
+    if silent is None:
+        silent = False
+
+    previous = j.tools.configmanager.interactive
+    try:
+        j.tools.configmanager.interactive = not silent
+        j.tools.configmanager.init(silent=silent, configpath=path, keypath=key)
+    finally:
+        j.tools.configmanager.interactive = previous
+
+
+@click.command()
+def test():
+    j.tools.configmanager.test()
+
+
+@click.command()
+@click.option('--location', '-l', default=None, help='location in jumpscale e.g. j.clients.packetnet (j.clients can be ommitted) if not passed, will reset all')
+@click.option('--instance', '-i', default=None, help='name of the instance, to set, must also set location')
+@click.option('--force', '-f', default=False, help='reset in non-interactive mode', is_flag=True)
+def reset(location, instance, force):
+    if instance and not location:
+        raise RuntimeError("to specify which instance to reset, you must also specify the location")
+
+    j.tools.configmanager.reset(location=location, instance=instance, force=force)
+
+
+@click.command()
+@click.option('--location', '-l', default=None, help='location in jumpscale e.g. j.clients.packetnet (j.clients can be ommitted)')
+@click.option('--instance', '-i', default='main', help='name of the instance, default: main')
+def configure(location, instance):
+    j.tools.configmanager.configure(location=location, instance=instance)
+
+
+@click.command()
+@click.option('--location', '-l', default=None, help='location in jumpscale e.g. j.clients.packetnet (j.clients can be ommitted)')
+@click.option('--instance', '-i', default='main', help='name of the instance, default: main')
+def get(location, instance):
+    c = j.tools.configmanager.js9_obj_get(location=location, instance=instance)
+    print("var c has the config management object")
+    from IPython import embed
+    embed(colors='Linux')
+
+
+@click.command()
+@click.option('--location', '-l', default=None, help='location in jumpscale e.g. j.clients.packetnet (j.clients can be ommitted)')
+@click.option('--instance', '-i', default=None, help='name of the instance, default: all, will remove all instance from the location')
+def delete(location, instance):
+    if not location:
+        raise RuntimeError("location needs to be specified")
+
+    if not instance:
+        instance = '*'
+    j.tools.configmanager.delete(location=location, instance=instance)
+
+
+cli.add_command(configure)
+cli.add_command(sandbox)
+cli.add_command(get)
+cli.add_command(init)
+cli.add_command(test)
+cli.add_command(reset)
+cli.add_command(delete)
+
+if __name__ == '__main__':
+    cli()
+

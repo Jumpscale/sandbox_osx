@@ -1,0 +1,178 @@
+#! /usr/bin/env python3.6
+from js9 import j
+j.tools.bash.local.locale_check()
+import click
+
+@click.group()
+def cli():
+    pass
+
+@click.command()
+@click.option('--name', '-n', help='name of the docker to list')
+@click.option('--parsable', '-p', help='enable parsable output', is_flag=True, type=bool)
+def list(name, parsable):
+    running = j.sal.docker.status()
+    host="localhost"
+    if not parsable:
+        print(" %-25s %-80s %-10s %s" % ("Name", "Image", "ssh port", "status"))
+        for name2, image,  port, status in running:
+            if name and name != name2:
+                continue
+            print(" %-25s %-80s %-10s %s" % (name2, image, host, port, status))
+    else:
+        infos = []
+        for name2, image, port, status in running:
+            if name and name != name2:
+                continue
+            infos.append({'name': name2, 'image': image, 'host': host, 'port': port, 'status': status})
+        print(j.data.serializer.json.dumps(infos))
+
+@click.command()
+@click.option('--image', '-i', default='jumpscale/ubuntu1604_golang', help='docker image to pull')
+def pull(image):
+    j.sal.docker.pull(image)
+
+@click.command()
+@click.option('--image', '-i', help='name of the image to push')
+def push(image):
+    j.sal.docker.push(image, output=True)
+
+@click.command()
+@click.option('--name', '-n', help='name of the docker to commit')
+@click.option('--tag', '-t', help='tag to give to the commit')
+@click.option('--msg', help='commit message')
+@click.option('--force', help='force commit', type=bool, is_flag=True)
+def commit(name, tag, msg, force):
+    if name is None:
+        print("specify name of machine with -n")
+        return
+    if tag is None:
+        print("specify name of image to commit to with -b")
+        return
+    container = j.sal.docker.get(name)
+    container.commit(tag, msg=msg, delete=True, force=force)
+
+
+@click.command()
+@click.option('--image', '-i', default='jumpscale/ubuntu1604', help='image to use', show_default=True)
+@click.option('--name', '-n', help='name to give to the container')
+@click.option('--ports', '-p', help='format "22:8022 80:8080"  the first arg e.g. 22 is the port in the container')
+@click.option('--volumes', '-v', help='format: "/var/insidemachine:/var/inhost # /var/1:/var/1 # ...')
+@click.option('--cpu', help='cpu shares (min 0, max 1000)')
+@click.option('--memory', '-mem', help='Max memory in MB')
+@click.option('--sharecode', help='Share host /opt/code witch container', is_flag=True, type=bool)
+@click.option('--keyname','-k', help='ssh-agent keyname to be used to push into container')
+@click.option('--pubkey', help='public sshkey to push into container')
+@click.option('--aysfs', help='use default jumpscale aysfs', is_flag=True, type=bool)
+def create(image, name, ports, volumes, cpu, memory, sharecode, keyname, pubkey, aysfs):
+    aysfspts = []
+
+    if aysfs:
+        aysfspts.append(j.sal.aysfs.getJumpscale())
+
+    j.sal.docker.create(name=name, stdout=True, base=image, ports=ports, vols=volumes,
+             volsro=None, cpu=cpu, mem=memory, sharecode=sharecode,\
+             sshkeyname=keyname, sshpubkey=pubkey, rootpasswd=None, jumpscalebranch=None,\
+             aysfs=aysfspts)
+
+
+@click.command()
+@click.option('--name', '-n', help='name of the container')
+def getIP(name):
+    container = j.sal.docker.get(name)
+    print(container.getIp())
+
+
+@click.command()
+@click.option('--removeimages', '-r', default=False, is_flag=True,help='also destroy images')
+def destroyAll(removeimages):
+    j.sal.docker.destroyAll(removeimages=removeimages)
+
+@click.command()
+def resetDocker():
+    j.sal.docker.resetDocker()
+
+@click.command()
+@click.option('--name', '-n', help='name of the container')
+def destroy(name):
+    container = j.sal.docker.get(name)
+    container.destroy()
+
+@click.command()
+@click.option('--name', '-n', help='name of the container')
+def stop(name):
+    container = j.sal.docker.get(name)
+    container.stop()
+
+@click.command()
+@click.option('--name', '-n', help='name of the container')
+def start(name):
+    container = j.sal.docker.get(name)
+    container.start()
+
+@click.command()
+@click.option('--name', '-n', help='name of the container')
+def restart(name):
+    container = j.sal.docker.get(name)
+    container.stop()
+    container.start()
+
+@click.command()
+@click.option('--name', '-n', help='name of the container')
+@click.option('--ouput', '-o', help='name of the ouput file')
+def exportTGZ(name, output):
+    print("export %s to %s" % (name, output))
+    j.sal.docker.exportTgz(name, output)
+
+@click.command()
+@click.option('--name', '-n', help='name of the container')
+@click.option('--input', '-o', help='name of the ouput file')
+def exportTGZ(name, output):
+    print("import %s to %s" % (input, name))
+    j.sal.docker.importTgz(name, output)
+
+@click.command()
+@click.option('--name', '-n', help='name of the container')
+@click.option('--ouput', '-o', help='name of the ouput file')
+@click.option('--key', help='key for syncing')
+def importRsync(name, output, key):
+    print("export %s to %s" % (name, output))
+    j.sal.docker.exportRsync(name, output, key=key)
+
+@click.command()
+@click.option('--name', '-n', help='name of the container')
+@click.option('--input', '-o', help='name of the ouput file')
+@click.option('--key', help='key for syncing')
+def importRsync(name, output, key):
+    print("import %s to %s" % (input, name))
+    j.sal.docker.importRsync(name, output, key=key)
+
+@click.command()
+@click.option('--name', '-n', help='name of the container')
+@click.option('--cmd', '-c', help='command to execute')
+def execute(name, cmd):
+    container = j.sal.docker.get(name)
+    container.prefab.core.run(cmd)
+
+
+cli.add_command(list)
+cli.add_command(pull)
+cli.add_command(push)
+cli.add_command(commit)
+cli.add_command(create)
+cli.add_command(getIP)
+cli.add_command(destroyAll)
+cli.add_command(resetDocker)
+cli.add_command(destroy)
+cli.add_command(stop)
+cli.add_command(start)
+cli.add_command(restart)
+cli.add_command(exportTGZ)
+cli.add_command(exportTGZ)
+cli.add_command(importRsync)
+cli.add_command(importRsync)
+cli.add_command(execute)
+
+if __name__ == '__main__':
+    cli()
+

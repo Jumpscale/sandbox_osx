@@ -1,0 +1,148 @@
+#! /usr/bin/env python3.6
+from js9 import j
+j.tools.bash.local.locale_check()
+import click
+
+
+@click.group()
+def cli():
+    pass
+
+
+@click.command()
+def init():
+    j.tools.raml.get(init=True)
+
+
+@click.command()
+@click.option('--reset', '-r', help='reset will delete previously coded server, be careful', is_flag=True, type=bool)
+@click.option('--dir', '-d', help='Location of the directory containing the api specs. Default to current directory',
+              default='')
+@click.option('--kind', '-k', help='Kind of python server to generate (flask, sanic, gevent)', default='flask')
+@click.option('--no-apidocs', help='Do not generate API docs at /apidocs endpoint', type=bool, is_flag=True)
+@click.option('--no-main', help='Do not generate main server file', type=bool, is_flag=True)
+@click.option('--lib-root-urls', '-l', help='Comma-separated libraries root URLs', default='')
+def generate_pyserver(reset, dir, kind, no_apidocs, no_main, lib_root_urls):
+    c = j.tools.raml.get(path=dir)
+    c.server_python_generate(reset=reset, kind=kind, no_apidocs=no_apidocs,
+                             no_main=no_main, lib_root_urls=lib_root_urls)
+
+
+@click.command()
+@click.option('--reset', '-r', help='reset will delete previously coded server, be careful', is_flag=True, type=bool)
+@click.option('--dir', '-d', help='Location of the directory containing the api specs', default='')
+@click.option('--kind', '-k', help='Kind of python client to generate (requests, aiohttp, gevent)', default='requests')
+@click.option('--unmarshall-response', '-u',
+              help='set to true for python client to unmarshall the response into python class',
+              type=bool, default=True)
+def generate_pyclient(reset, dir, kind, unmarshall_response):
+    c=j.tools.raml.get(path=dir)
+    c.client_python_generate(reset=reset, kind=kind, unmarshall_response=unmarshall_response)
+
+
+@click.command()
+@click.option('--reset', '-r', help='reset will delete previously coded server, be careful', is_flag=True, type=bool)
+@click.option('--dir', '-d', help='Location of the directory containing the api specs', default='')
+@click.option('--package', '-p', help='Package name (default: "client")', default='client')
+@click.option('--import-path', '-i', help='Golang import path for the genrated code', default='')
+@click.option('--lib-root-urls', '-l', help='Comma-separated libraries root URLs', default='')
+def generate_goclient(reset, dir, package, import_path, lib_root_urls):
+    c = j.tools.raml.get(path=dir)
+    c.client_go_generate(reset=reset, package=package, import_path=import_path, lib_root_urls=lib_root_urls)
+
+
+@click.command()
+@click.option('--reset', '-r', help='reset will delete previously coded server, be careful', is_flag=True, type=bool)
+@click.option('--dir', '-d', help='Location of the directory containing the api specs', default='')
+@click.option('--package', '-p', help='Package name (default: "client")', default='client')
+@click.option('--no-main', help='Do not generate main server file', type=bool, is_flag=True)
+@click.option('--no-apidocs', help='Do not generate API docs at /apidocs endpoint', type=bool, is_flag=True)
+@click.option('--import-path', '-i', help='Golang import path for the genrated code', default='')
+@click.option('--lib-root-urls', '-l', help='Comma-separated libraries root URLs', default='')
+@click.option('--api-file-per-method', '-a',help='Generate one API implementation file per method',
+              type=bool, default=True)
+def generate_goserver(reset, dir, package, no_main, no_apidocs, import_path, lib_root_urls, api_file_per_method):
+    c = j.tools.raml.get(path=dir)
+    print(api_file_per_method)
+    c.server_go_generate(reset=reset, package=package, no_main=no_main, no_apidocs=no_apidocs, import_path=import_path,
+                         lib_root_urls=lib_root_urls, api_file_per_method=api_file_per_method)
+
+
+@click.command()
+@click.option('--reset', '-r', help='reset will delete previously coded server, be careful', is_flag=True, type=bool)
+@click.option('--dir', '-d', help='Location of the directory containing the api specs', default='')
+def generate_nimclient(reset, dir):
+    c = j.tools.raml.get(path=dir)
+    c.client_nim_generate(reset=reset)
+
+
+@click.command()
+@click.option('--reset', '-r', help='reset will delete previously coded server, be careful', is_flag=True, type=bool)
+@click.option('--dir', '-d', help='Location of the directory containing the api specs', default='')
+def generate_nimserver(reset, dir):
+    c = j.tools.raml.get(path=dir)
+    c.server_nim_generate(reset=reset)
+
+
+@click.command()
+@click.option('--reset', '-r', help='reset will delete previously coded server, be careful', is_flag=True, type=bool)
+@click.option('--dir', '-d', help='Location of the directory containing the api specs', default='')
+def generate_luaserver(reset, dir):
+    c = j.tools.raml.get(path=dir)
+    c.server_lua_generate(reset=reset)
+
+
+@click.command()
+def start():
+    c = j.tools.raml.get()
+    c.start()
+
+
+@click.command()
+def reset():
+    c = j.tools.raml.get()
+    c.reset()
+
+
+@click.command()
+def install():
+    j.tools.raml.install()
+
+
+@click.command()
+def upgrade():
+    j.tools.raml.upgrade()
+
+
+@click.command()
+def test():
+    j.tools.raml.test()
+
+
+@click.command()
+@click.option('--url', '-u', help='url of location where specs are e.g. https://github.com/itsyouonline/identityserver/tree/master/specifications/api')
+def getapi(url):
+    """
+    """
+    c = j.tools.raml.get()
+    c.specs_get(url)
+
+
+cli.add_command(install)
+cli.add_command(init)
+cli.add_command(reset)
+cli.add_command(generate_pyserver)
+cli.add_command(generate_pyclient)
+cli.add_command(generate_goclient)
+cli.add_command(generate_goserver)
+cli.add_command(generate_nimclient)
+cli.add_command(generate_nimserver)
+cli.add_command(generate_luaserver)
+cli.add_command(start)
+cli.add_command(test)
+cli.add_command(upgrade)
+
+
+if __name__ == '__main__':
+    cli()
+

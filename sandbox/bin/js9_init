@@ -1,0 +1,30 @@
+#! /usr/bin/env python3.6
+
+
+# from js9 import j
+# needs to be the original one because am generating the above one
+from JumpScale9 import j
+
+try:
+    from JumpScale9.data.capnp.Capnp import Capnp
+    j.data.capnp = Capnp()
+except:
+    pass
+
+import sys
+
+print(j.core.state.mascot)
+
+
+#make sure we don't do autopip
+j.core.state.configSetInDict('system','autopip',False)
+
+j.tools.jsloader.generate()
+
+#try:
+#print ("WARNING: dockerconfig was not done")
+#from js9 import j as h
+#h.tools.develop.dockerconfig() #make sure required config/sshkeys are made available to docker or installed in docker
+#except:
+#    pass
+

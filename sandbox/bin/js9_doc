@@ -1,0 +1,28 @@
+#! /usr/bin/env python3.6
+from js9 import j
+j.tools.bash.local.locale_check()
+import click
+import sys
+# from pprint import pprint as print
+
+
+logger = j.logger.get("js9_doc", force=True)
+
+
+@click.group()
+def cli():
+    pass
+
+
+@click.command()
+def generate():
+    """
+    will generate from existing dir
+    """
+    j.tools.docgenerator.generate()
+
+cli.add_command(generate)
+
+if __name__ == '__main__':
+    cli()
+

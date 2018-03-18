@@ -1,0 +1,153 @@
+#! /usr/bin/env python3.6
+from js9 import j
+j.tools.bash.local.locale_check()
+import click
+import sys
+# from pprint import pprint as print
+
+
+logger = j.logger.get("js9_node", force=True)
+
+
+@click.group()
+def cli():
+    pass
+
+
+get_help = 'name of the instance, can be part of name, will give error if no node or more than 1 found'
+
+
+@click.command()
+@click.option('--monitor', '-m', type=bool, is_flag=True, default=False,
+              help='will actively keep monitoring for changes, and send changed files over')
+@click.option('--instance', '-i', default=None, help=get_help)
+def sync(instance, monitor):
+    """
+    will get a node & sync
+    """
+    if monitor:
+        if instance is not None:
+            for node in j.tools.nodemgr.getall():
+                if node.name != instance:
+                    node.selected = False
+
+        curdir = j.sal.fs.getcwd()
+        cmd = "cd %s;js9_node monitor -i %s" % (curdir, instance)
+        j.tools.tmux.execute(cmd, session='main', window='main', pane='sync')
+        node = get_node(instance)
+        node.ssh()
+    else:
+        node = get_node(instance)
+        node.sync(monitor=monitor)
+
+
+def get_node(name=""):
+    logger.debug("node get: %s" % name)
+    if name == None:
+        name = ""
+    res = []
+    for item in j.tools.nodemgr.getall():
+        if item.name == name:
+            res.append(item)
+    if len(res) != 1:
+        if len(res) == 0:
+            print("* ERROR: could not find node with name:'%s'" % name)
+        else:
+            print("* ERROR: found too many nodes with name:'%s'" % name)
+        sys.exit(1)
+    logger.info("node: %s" % res[0])
+    return res[0]
+
+
+@click.command()
+@click.option('--instance', '-i', default=None, help=get_help)
+def get(instance):
+    """
+    will get a node & then open a python shell where p(prefab) & n(node) are populated
+    """
+    node = get_node(instance)
+    p = node.prefab
+    n = node
+    print("use n or p in shell to get started.")
+    print("- n : node")
+    print("- p : prefab")
+    from IPython import embed
+    embed(colors='Linux')
+
+
+@click.command()
+@click.option('--instance', '-i', default=None, help=get_help)
+def ssh(instance):
+    """
+    will get a node & then ssh into it
+    """
+    node = get_node(instance)
+    node.ssh()
+
+
+@click.command()
+@click.option('--instance', '-i', default=None, help=get_help)
+@click.option('--remote', '-r', default=None, help=get_help)
+@click.option('--local', '-l', default=None, help=get_help)
+def forward(instance, remote, local):
+    """
+    will create portforward rule (remote comes to local)
+    """
+    node = get_node(instance)
+    node.portforward(remote, local)
+
+
+@click.command()
+@click.option('--instance', '-i', default=None, help=get_help)
+def monitor(instance):
+    """
+    will get a node & sync
+    """
+    node = get_node(instance)
+    node.sync(monitor=True)
+
+
+@click.command()
+@click.option('--cat', '-c', default=None, help='category of node e.g. ovh')
+def list(cat):
+    j.logger.disable()    
+    for item in j.tools.nodemgr.getall():
+        if cat is not None:
+            if item.config.data["category"] != cat:
+                continue
+        print("- %s" % item)
+
+
+@click.command()
+@click.option('--instance', '-i', default=None, help=get_help)
+def delete(instance):
+    """
+    delete a node
+    """
+    node = get_node(instance)
+    node.config.delete()
+
+
+@click.command()
+@click.option('--instance', '-i', default=None, help=get_help)
+def info(instance):
+    """
+    print detail of the node
+    """
+    node = get_node(instance)
+    print(node)
+    print(node.config.data)
+
+
+cli.add_command(get)
+cli.add_command(list)
+cli.add_command(ssh)
+cli.add_command(sync)
+cli.add_command(info)
+cli.add_command(delete)
+cli.add_command(monitor)
+cli.add_command(forward)
+
+if __name__ == '__main__':
+    cli()
+

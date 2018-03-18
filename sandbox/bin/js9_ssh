@@ -1,0 +1,14 @@
+#! /usr/bin/env python3.6
+from js9 import j
+
+import sys
+
+if len(sys.argv) != 2:
+    print("need to specify name of node to access as command line arg e.g. js9_ssh testnode")
+
+name = sys.argv[1]
+
+node = j.tools.develop.nodes.nodeGet(name)
+
+j.sal.process.executeInteractive("ssh root@%s -p %s" % (node.addr, node.port))
+
